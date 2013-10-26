@@ -4,7 +4,8 @@ package com.leapmotion.leap.native
 	import com.leapmotion.leap.Frame;
 	import com.leapmotion.leap.interfaces.ILeapConnection;
 	import com.leapmotion.leap.namespaces.leapmotion;
-
+	
+	import flash.events.Event;
 	import flash.events.StatusEvent;
 	import flash.utils.getDefinitionByName;
 
@@ -103,9 +104,52 @@ package com.leapmotion.leap.native
 			context = tryCreatingExtensionContext();
 
 			if( context )
+			{
 				controller.context = context;
-
-			context.addEventListener( StatusEvent.STATUS, contextStatusModeEventHandler, false, 0, true );
+				context.addEventListener( StatusEvent.STATUS, contextStatusModeEventHandler, false, 0, true );
+				var NativeApplicationClass:* = getNativeApplicationClassReference();
+				if( NativeApplicationClass )
+				{
+					NativeApplicationClass.nativeApplication.addEventListener( "exiting", onNativeApplicatonExitHandler );
+				}
+			}
+		}
+		
+		/**
+		 * Tries to return a reference to the class object of the class
+		 * specified.
+		 *
+		 * @return NativeApplication, if definition could be found; null otherwise.
+		 *
+		 */
+		private static function getNativeApplicationClassReference():*
+		{
+			try
+			{
+				return getDefinitionByName( "flash.desktop.NativeApplication" );
+			}
+			catch( error:Error )
+			{
+				trace( "[LeapNative] getNativeApplicationClassReference: " + error.message );
+			}
+			return null;
+		}
+		
+		/**
+		 * Triggered when application closes.
+		 * @param event
+		 *
+		 */
+		private function onNativeApplicatonExitHandler( event:Event ) :void
+		{
+			try
+			{
+				context.dispose();
+			}
+			catch( error:Error )
+			{
+				
+			}
 		}
 
 		/**
@@ -176,7 +220,6 @@ package com.leapmotion.leap.native
 		{
 			_isConnected = false;
 			controller.leapmotion::listener.onDisconnect( controller );
-			controller.leapmotion::listener.onExit( controller );
 		}
 
 		/**
@@ -247,6 +290,7 @@ package com.leapmotion.leap.native
 							trace( "[LeapNative] Leap Motion Native Extension is not supported." );
 							trace( "[LeapNative] If you are on Windows, add the Leap Motion software folder to your PATH." );
 							trace( "[LeapNative] Falling back on Socket implementation." );
+							return false;
 						}
 						return true;
 					}
